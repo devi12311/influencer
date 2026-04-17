@@ -42,6 +42,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/prompts/new">
               New prompt
             </Link>
+            <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/new-post">
+              New post
+            </Link>
+            <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/posts">
+              Posts
+            </Link>
             <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/settings">
               Settings
             </Link>

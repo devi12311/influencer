@@ -13,6 +13,6 @@
 | 08    | AI Influencer library            | done        | 066cfab | Influencer CRUD, canonical asset management, and library/detail UI are implemented. |
 | 09    | Prompt gallery                   | done        | b78e8eb | Prompt CRUD, refs, filters, and favorite flow are implemented. |
 | 10    | Nano Banana generation adapter   | done        | 36e8522 | Nano Banana generator, generation job/service, polling API, and sandbox UI are implemented. |
-| 11    | Post creation wizard             | in_progress |        | Next up: wizard flow built on the new generation adapter. |
-| 12    | Posts gallery & publishing UI    | pending     |        |       |
+| 11    | Post creation wizard             | done        | 6754993 | Post draft persistence, wizard steps, and save-to-post flow are implemented. |
+| 12    | Posts gallery & publishing UI    | in_progress |        | Next up: publishing UI and richer posts gallery. |
 | 13    | Scheduling & observability       | pending     |        |       |
