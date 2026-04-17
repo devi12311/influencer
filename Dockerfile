@@ -19,6 +19,7 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV SKIP_ENV_VALIDATION=1
 RUN pnpm build
 
 FROM base AS prod-deps
