@@ -1,12 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { PublicationStatus, type SocialPlatform } from "@prisma/client";
+import { Prisma, PublicationStatus, type SocialPlatform } from "@prisma/client";
 import { auth } from "@/server/auth";
+import { db } from "@/server/db";
 import { getQueue, queueNames } from "@/server/queue/queues";
 import { savePostFromDraft as persistPostFromDraft } from "@/server/services/post";
 import { updatePostDraft } from "@/server/services/post-draft";
-import { db } from "@/server/db";
 
 async function requireUserId() {
   const session = await auth();
@@ -171,7 +171,7 @@ export async function createPublicationsAction(formData: FormData) {
           data: {
             caption,
             errorMessage: null,
-            options,
+            options: options as Prisma.InputJsonValue,
             platform: connection.platform as SocialPlatform,
             scheduledAt,
             status: scheduledAt && scheduledAt > new Date() ? PublicationStatus.SCHEDULED : PublicationStatus.DRAFT,
@@ -180,7 +180,7 @@ export async function createPublicationsAction(formData: FormData) {
       : await db.postPublication.create({
           data: {
             caption,
-            options,
+            options: options as Prisma.InputJsonValue,
             platform: connection.platform as SocialPlatform,
             postId: post.id,
             scheduledAt,
@@ -215,5 +215,28 @@ export async function retryPublicationAction(formData: FormData) {
   });
 
   await enqueuePublication(publication.id);
+  redirect(`/posts/${publication.postId}`);
+}
+
+export async function cancelScheduledPublicationAction(formData: FormData) {
+  const userId = await requireUserId();
+  const publicationId = String(formData.get("publicationId") ?? "");
+
+  const publication = await db.postPublication.findFirstOrThrow({
+    where: {
+      id: publicationId,
+      post: { userId },
+      status: PublicationStatus.SCHEDULED,
+    },
+  });
+
+  await db.postPublication.update({
+    where: { id: publication.id },
+    data: {
+      scheduledAt: null,
+      status: PublicationStatus.DRAFT,
+    },
+  });
+
   redirect(`/posts/${publication.postId}`);
 }

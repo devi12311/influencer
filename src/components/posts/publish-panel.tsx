@@ -1,4 +1,4 @@
-import { createPublicationsAction, retryPublicationAction } from "@/actions/post";
+import { cancelScheduledPublicationAction, createPublicationsAction, retryPublicationAction } from "@/actions/post";
 
 interface Connection {
   displayName: string | null;
@@ -92,14 +92,25 @@ export function PublishPanel({
 
                 {publication?.errorMessage ? <p className="text-sm text-red-600">{publication.errorMessage}</p> : null}
                 {publication?.externalId ? <p className="text-sm text-slate-500">External ID: {publication.externalId}</p> : null}
-                {publication?.status === "FAILED" ? (
-                  <form action={retryPublicationAction}>
-                    <input name="publicationId" type="hidden" value={publication.id} />
-                    <button className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700" type="submit">
-                      Retry failed publication
-                    </button>
-                  </form>
-                ) : null}
+
+                <div className="flex flex-wrap gap-2">
+                  {publication?.status === "FAILED" ? (
+                    <form action={retryPublicationAction}>
+                      <input name="publicationId" type="hidden" value={publication.id} />
+                      <button className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700" type="submit">
+                        Retry failed publication
+                      </button>
+                    </form>
+                  ) : null}
+                  {publication?.status === "SCHEDULED" ? (
+                    <form action={cancelScheduledPublicationAction}>
+                      <input name="publicationId" type="hidden" value={publication.id} />
+                      <button className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700" type="submit">
+                        Cancel schedule
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
               </section>
             );
           })}

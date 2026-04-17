@@ -15,4 +15,4 @@
 | 10    | Nano Banana generation adapter   | done        | 36e8522 | Nano Banana generator, generation job/service, polling API, and sandbox UI are implemented. |
 | 11    | Post creation wizard             | done        | 6754993 | Post draft persistence, wizard steps, and save-to-post flow are implemented. |
 | 12    | Posts gallery & publishing UI    | done        | 80ce3d2 | Posts filters, publish panel, publication actions, and retry flow are implemented. |
-| 13    | Scheduling & observability       | in_progress |        | Next up: scheduling, health, and observability. |
+| 13    | Scheduling & observability       | done        | 4809cac | Scheduling cancel flow, health checks, timezone storage, usage page, and observability wiring are implemented. |

@@ -24,18 +24,20 @@ export default async function NewPostPage({
     redirect("/login?redirect=/new-post");
   }
 
+  const userId = session.userId;
+
   let draftId = params.draft;
-  let draft = draftId ? await getPostDraft(session.userId, draftId) : null;
+  let draft = draftId ? await getPostDraft(userId, draftId) : null;
 
   if (!draft) {
-    draftId = await createPostDraft(session.userId);
+    draftId = await createPostDraft(userId);
     redirect(`/new-post?draft=${draftId}&step=1`);
   }
 
   const step = Number(params.step ?? 1);
 
   if (step <= 1) {
-    const influencers = await listInfluencersByUser(session.userId);
+    const influencers = await listInfluencersByUser(userId);
     return <StepInfluencer draftId={draft.draftId} influencers={influencers} />;
   }
 
@@ -44,7 +46,7 @@ export default async function NewPostPage({
   }
 
   if (step === 2) {
-    const prompts = await listPromptsByUser({ userId: session.userId });
+    const prompts = await listPromptsByUser({ userId });
     return <StepPrompt draftId={draft.draftId} prompts={prompts} />;
   }
 
@@ -53,8 +55,8 @@ export default async function NewPostPage({
   }
 
   const [influencers, prompts] = await Promise.all([
-    listInfluencersByUser(session.userId),
-    listPromptsByUser({ userId: session.userId }),
+    listInfluencersByUser(userId),
+    listPromptsByUser({ userId }),
   ]);
   const influencer = influencers.find((item) => item.id === draft.influencerId);
   const prompt = prompts.find((item) => item.id === draft.promptId);
@@ -66,7 +68,7 @@ export default async function NewPostPage({
   if (step === 3) {
     const generations = await Promise.all(
       draft.generationIds.map(async (generationId) => {
-        const generation = await getGenerationById({ id: generationId, userId: session.userId });
+        const generation = await getGenerationById({ id: generationId, userId });
         return {
           id: generation.id,
           outputMediaUrl: generation.outputMedia ? await getPresignedUrl(generation.outputMedia, "thumb") : null,
@@ -91,7 +93,7 @@ export default async function NewPostPage({
     redirect(`/new-post?draft=${draft.draftId}&step=3`);
   }
 
-  const generation = await getGenerationById({ id: draft.currentGenerationId, userId: session.userId });
+  const generation = await getGenerationById({ id: draft.currentGenerationId, userId });
 
   if (!generation.outputMedia) {
     redirect(`/new-post?draft=${draft.draftId}&step=3`);

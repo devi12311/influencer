@@ -24,3 +24,7 @@ export const logger =
 if (process.env.NODE_ENV !== "production") {
   globalThis.aiInfluencerLogger = logger;
 }
+
+export function withRequestLogger(requestId: string) {
+  return logger.child({ requestId });
+}

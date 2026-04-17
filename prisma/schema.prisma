@@ -13,6 +13,7 @@ model User {
   username          String             @unique
   passwordHash      String
   emailVerifiedAt   DateTime?
+  timezone          String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   sessions          Session[]
