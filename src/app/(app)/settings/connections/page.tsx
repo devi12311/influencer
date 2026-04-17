@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { disconnectConnection, forceRefreshConnection, startInstagramConnection } from "@/actions/connection";
+import { disconnectConnection, forceRefreshConnection, startFacebookConnection, startInstagramConnection } from "@/actions/connection";
 import { auth } from "@/server/auth";
 import { listConnections } from "@/server/services/social-connection";
 
@@ -30,6 +30,11 @@ export default async function ConnectionsPage({
         <form action={startInstagramConnection}>
           <button className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white" type="submit">
             Connect Instagram
+          </button>
+        </form>
+        <form action={startFacebookConnection}>
+          <button className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" type="submit">
+            Connect Facebook Page
           </button>
         </form>
         {params.connected ? <p className="text-sm text-emerald-600">Connected {params.connected} successfully.</p> : null}

@@ -7,8 +7,8 @@
 | 02    | Token vault & SocialConnection   | done        | 4793c8d | Vault encryption, OAuth state helpers, refresh stub, and empty connections UI are in place. |
 | 03    | Media pipeline                   | done        | 33802c8 | Presigned uploads, media metadata, Sharp thumbnail jobs, and the upload UI are implemented. |
 | 04    | Instagram OAuth + publish        | done        | ceb338c | Instagram OAuth, provider wiring, callback flow, and publish job code are implemented. |
-| 05    | Facebook Page OAuth + publish    | in_progress |        | Next up: Facebook Page OAuth + publish. |
-| 06    | Threads OAuth + publish          | pending     |        |       |
+| 05    | Facebook Page OAuth + publish    | done        | 0b82e52 | Facebook Page OAuth, page selection, provider wiring, and publish flow code are implemented. |
+| 06    | Threads OAuth + publish          | in_progress |        | Next up: Threads OAuth + publish. |
 | 07    | TikTok OAuth + publish           | pending     |        |       |
 | 08    | AI Influencer library            | pending     |        |       |
 | 09    | Prompt gallery                   | pending     |        |       |

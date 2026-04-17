@@ -1,8 +1,12 @@
 import { SocialPlatform } from "@prisma/client";
-import type { PostingProvider } from "@/server/providers/posting-provider";
+import { facebookPublisher } from "@/server/providers/facebook/publisher";
 import { instagramPublisher } from "@/server/providers/instagram/publisher";
+import type { PostingProvider } from "@/server/providers/posting-provider";
 
-const postingProviders = new Map<SocialPlatform, PostingProvider>([[SocialPlatform.INSTAGRAM, instagramPublisher]]);
+const postingProviders = new Map<SocialPlatform, PostingProvider>([
+  [SocialPlatform.INSTAGRAM, instagramPublisher],
+  [SocialPlatform.FACEBOOK_PAGE, facebookPublisher],
+]);
 
 export function resolvePostingProvider(platform: SocialPlatform) {
   const provider = postingProviders.get(platform);

@@ -1,9 +1,10 @@
 import { SocialPlatform } from "@prisma/client";
+import { refresh as refreshFacebookPageToken } from "@/server/providers/facebook/oauth";
 import { refresh as refreshInstagramToken } from "@/server/providers/instagram/oauth";
-import { getQueue, queueNames } from "@/server/queue/queues";
 import { db } from "@/server/db";
-import { getDecryptedTokens, markNeedsReauth, upsertConnection } from "@/server/services/social-connection";
 import { logger } from "@/server/logger";
+import { getQueue, queueNames } from "@/server/queue/queues";
+import { getDecryptedTokens, markNeedsReauth, upsertConnection } from "@/server/services/social-connection";
 
 export const REFRESH_SCAN_SENTINEL = "__scan__";
 const REFRESH_SCAN_JOB_ID = "refresh-token-scan";
@@ -12,14 +13,8 @@ interface RefreshJobData {
   connectionId: string;
 }
 
-async function refreshProviderTokens(platform: SocialPlatform, connectionId: string) {
-  if (platform !== SocialPlatform.INSTAGRAM) {
-    throw new Error(`Refresh handling for ${platform} is not implemented yet.`);
-  }
-
-  const connection = await db.socialConnection.findUniqueOrThrow({
-    where: { id: connectionId },
-  });
+async function refreshInstagramConnection(connectionId: string) {
+  const connection = await db.socialConnection.findUniqueOrThrow({ where: { id: connectionId } });
   const tokens = await getDecryptedTokens(connectionId);
   const refreshed = await refreshInstagramToken(tokens.accessToken);
 
@@ -36,8 +31,42 @@ async function refreshProviderTokens(platform: SocialPlatform, connectionId: str
     scopes: connection.scopes,
     userId: connection.userId,
   });
+}
 
-  logger.info({ connectionId, platform }, "Refreshed provider access token");
+async function refreshFacebookConnection(connectionId: string) {
+  const connection = await db.socialConnection.findUniqueOrThrow({ where: { id: connectionId } });
+  const tokens = await getDecryptedTokens(connectionId);
+  const verified = await refreshFacebookPageToken(tokens.accessToken);
+
+  await upsertConnection({
+    accessExpiresAt: new Date(Date.now() + 55 * 24 * 60 * 60 * 1000),
+    accessToken: tokens.accessToken,
+    avatarUrl: connection.avatarUrl,
+    displayName: verified.name ?? connection.displayName,
+    externalAccountId: connection.externalAccountId,
+    meta: {
+      ...(connection.meta as Record<string, unknown> | null | undefined),
+      lastVerifiedPageId: verified.id ?? null,
+    },
+    platform: connection.platform,
+    refreshExpiresAt: connection.refreshExpiresAt,
+    refreshToken: tokens.refreshToken,
+    scopes: connection.scopes,
+    userId: connection.userId,
+  });
+}
+
+async function refreshProviderTokens(platform: SocialPlatform, connectionId: string) {
+  switch (platform) {
+    case SocialPlatform.INSTAGRAM:
+      await refreshInstagramConnection(connectionId);
+      return;
+    case SocialPlatform.FACEBOOK_PAGE:
+      await refreshFacebookConnection(connectionId);
+      return;
+    default:
+      throw new Error(`Refresh handling for ${platform} is not implemented yet.`);
+  }
 }
 
 export async function enqueueRefreshScanJob() {

@@ -94,6 +94,29 @@ export async function getInstagramConnectionCredentials(connectionId: string) {
   };
 }
 
+export async function getFacebookPageConnectionCredentials(connectionId: string) {
+  const connection = await db.socialConnection.findUniqueOrThrow({
+    where: { id: connectionId },
+    select: {
+      externalAccountId: true,
+      id: true,
+      platform: true,
+      userId: true,
+      accessTokenCt: true,
+    },
+  });
+
+  if (connection.platform !== SocialPlatform.FACEBOOK_PAGE) {
+    throw new Error("Connection is not a Facebook Page connection.");
+  }
+
+  return {
+    accessToken: open(connection.accessTokenCt, connection.userId),
+    connectionId: connection.id,
+    externalAccountId: connection.externalAccountId,
+  };
+}
+
 export async function listConnections(userId: string) {
   return db.socialConnection.findMany({
     where: { userId },
