@@ -30,8 +30,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/">
               Dashboard
             </Link>
+            <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/influencers">
+              Influencers
+            </Link>
             <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/influencers/new">
-              Uploads
+              New influencer
             </Link>
             <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/settings">
               Settings
