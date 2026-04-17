@@ -1,9 +1,10 @@
 import { Worker } from "bullmq";
+import { runDeriveThumbnailsJob } from "@/server/jobs/derive-thumbnails";
+import { enqueueRefreshScanJob, runRefreshTokenJob } from "@/server/jobs/refresh-token";
 import { logger } from "@/server/logger";
 import { createBullMqConnection } from "@/server/queue/connection";
 import { closeQueues, queueNames } from "@/server/queue/queues";
 import { createShutdownController } from "@/server/queue/worker-base";
-import { enqueueRefreshScanJob, runRefreshTokenJob } from "@/server/jobs/refresh-token";
 
 export interface WorkerRuntime {
   shutdown: (signal: NodeJS.Signals) => Promise<void>;
@@ -15,10 +16,22 @@ export async function bootWorkerRuntime(): Promise<WorkerRuntime> {
   const refreshWorker = new Worker(queueNames.refreshToken, async (job) => runRefreshTokenJob(job.data), {
     connection: createBullMqConnection(),
   });
+  const deriveThumbnailsWorker = new Worker(
+    queueNames.deriveThumbnails,
+    async (job) => runDeriveThumbnailsJob(job.data),
+    {
+      connection: createBullMqConnection(),
+    },
+  );
 
-  refreshWorker.on("failed", (job, error) => {
-    logger.error({ err: error, jobId: job?.id, queue: queueNames.refreshToken }, "Worker job failed");
-  });
+  for (const [queueName, worker] of [
+    [queueNames.refreshToken, refreshWorker],
+    [queueNames.deriveThumbnails, deriveThumbnailsWorker],
+  ] as const) {
+    worker.on("failed", (job, error) => {
+      logger.error({ err: error, jobId: job?.id, queue: queueName }, "Worker job failed");
+    });
+  }
 
   logger.info(
     {
@@ -28,12 +41,10 @@ export async function bootWorkerRuntime(): Promise<WorkerRuntime> {
   );
 
   const shutdown = createShutdownController(async (signal) => {
-    await refreshWorker.close();
+    await Promise.all([refreshWorker.close(), deriveThumbnailsWorker.close()]);
     await closeQueues();
     logger.info({ signal }, "Worker runtime shutting down");
   });
 
-  return {
-    shutdown,
-  };
+  return { shutdown };
 }

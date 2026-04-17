@@ -2,10 +2,10 @@
 
 | Phase | Title                            | Status      | Commit | Notes |
 |-------|----------------------------------|-------------|--------|-------|
-| 00    | Foundation                       | done        | 9bcbcb6 | Migration verified against the user-provided PostgreSQL database; full Phase 0 gate green. |
-| 01    | Credentials auth                 | done        |        | Credentials auth, protected shell, settings security, and Playwright auth flow are green. |
-| 02    | Token vault & SocialConnection   | done        |        | Vault encryption, OAuth state helpers, refresh stub, and empty connections UI are in place. |
-| 03    | Media pipeline                   | in_progress |        | Next up: presigned uploads, media metadata, Sharp thumbnails, and dropzone UI. |
+| 00    | Foundation                       | done        | cc52933 | Migration verified against the user-provided PostgreSQL database; full Phase 0 gate green. |
+| 01    | Credentials auth                 | done        | 4793c8d | Credentials auth, protected shell, settings security, and Playwright auth flow are green. |
+| 02    | Token vault & SocialConnection   | done        | 4793c8d | Vault encryption, OAuth state helpers, refresh stub, and empty connections UI are in place. |
+| 03    | Media pipeline                   | done        | 33802c8 | Presigned uploads, media metadata, Sharp thumbnail jobs, and the upload UI are implemented. |
 | 04    | Instagram OAuth + publish        | pending     |        |       |
 | 05    | Facebook Page OAuth + publish    | pending     |        |       |
 | 06    | Threads OAuth + publish          | pending     |        |       |

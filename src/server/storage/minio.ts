@@ -1,6 +1,8 @@
 import {
+  CreateBucketCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -9,26 +11,52 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "@/server/env";
 
 const client = new S3Client({
-  region: env.MINIO_REGION,
-  endpoint: env.MINIO_ENDPOINT,
-  forcePathStyle: true,
   credentials: {
     accessKeyId: env.MINIO_ACCESS_KEY,
     secretAccessKey: env.MINIO_SECRET_KEY,
   },
+  endpoint: env.MINIO_ENDPOINT,
+  forcePathStyle: true,
+  region: env.MINIO_REGION,
 });
+
+function ensureBodyHasBytes(body: unknown) {
+  if (body && typeof body === "object" && "transformToByteArray" in body) {
+    return body as { transformToByteArray: () => Promise<Uint8Array> };
+  }
+
+  throw new Error("Object body is not readable as bytes.");
+}
 
 export function getStorageClient() {
   return client;
 }
 
+export async function ensureBucketExists() {
+  try {
+    await client.send(
+      new HeadBucketCommand({
+        Bucket: env.MINIO_BUCKET,
+      }),
+    );
+  } catch (_error) {
+    await client.send(
+      new CreateBucketCommand({
+        Bucket: env.MINIO_BUCKET,
+      }),
+    );
+  }
+}
+
 export async function presignPut(key: string, contentType: string, ttl = 900) {
+  await ensureBucketExists();
+
   return getSignedUrl(
     client,
     new PutObjectCommand({
       Bucket: env.MINIO_BUCKET,
-      Key: key,
       ContentType: contentType,
+      Key: key,
     }),
     { expiresIn: ttl },
   );
@@ -58,6 +86,32 @@ export async function deleteObject(key: string) {
   return client.send(
     new DeleteObjectCommand({
       Bucket: env.MINIO_BUCKET,
+      Key: key,
+    }),
+  );
+}
+
+export async function readObjectBytes(key: string, range?: string) {
+  const response = await client.send(
+    new GetObjectCommand({
+      Bucket: env.MINIO_BUCKET,
+      Key: key,
+      Range: range,
+    }),
+  );
+
+  const body = ensureBodyHasBytes(response.Body);
+  return Buffer.from(await body.transformToByteArray());
+}
+
+export async function uploadObject(key: string, body: Buffer, contentType: string) {
+  await ensureBucketExists();
+
+  await client.send(
+    new PutObjectCommand({
+      Body: body,
+      Bucket: env.MINIO_BUCKET,
+      ContentType: contentType,
       Key: key,
     }),
   );

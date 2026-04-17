@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -27,6 +29,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <nav className="space-y-2 text-sm text-slate-700">
             <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/">
               Dashboard
+            </Link>
+            <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/influencers/new">
+              Uploads
             </Link>
             <Link className="block rounded-xl px-3 py-2 hover:bg-slate-100" href="/settings">
               Settings

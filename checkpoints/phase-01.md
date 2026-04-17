@@ -1,7 +1,7 @@
 # Phase 01 — Credentials auth
 
 **Status:** done
-**Commit:** pending
+**Commit:** 4793c8d
 **Date:** 2026-04-17
 
 ## What shipped

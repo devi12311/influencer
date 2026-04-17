@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { SettingsSecurityForm } from "@/components/auth/settings-security-form";
 
 export default function SettingsPage() {

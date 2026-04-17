@@ -4,6 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    exclude: ["tests/integration/**/*.integration.test.ts"],
     include: ["tests/**/*.test.ts"],
     coverage: {
       provider: "v8",

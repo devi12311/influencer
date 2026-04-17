@@ -1,7 +1,7 @@
 # Phase 00 — Foundation
 
 **Status:** done
-**Commit:** 9bcbcb6
+**Commit:** cc52933
 **Date:** 2026-04-17
 
 ## What shipped

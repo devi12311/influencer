@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { auth } from "@/server/auth";
 import { listConnections } from "@/server/services/social-connection";

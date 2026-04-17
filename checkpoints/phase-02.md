@@ -1,7 +1,7 @@
 # Phase 02 — Token vault & SocialConnection
 
 **Status:** done
-**Commit:** pending
+**Commit:** 4793c8d
 **Date:** 2026-04-17
 
 ## What shipped

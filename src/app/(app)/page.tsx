@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { auth } from "@/server/auth";
 
 export default async function DashboardPage() {
