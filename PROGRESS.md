@@ -9,8 +9,8 @@
 | 04    | Instagram OAuth + publish        | done        | ceb338c | Instagram OAuth, provider wiring, callback flow, and publish job code are implemented. |
 | 05    | Facebook Page OAuth + publish    | done        | 0b82e52 | Facebook Page OAuth, page selection, provider wiring, and publish flow code are implemented. |
 | 06    | Threads OAuth + publish          | done        | 6a5c5d5 | Threads OAuth, provider wiring, callback flow, and publish flow code are implemented. |
-| 07    | TikTok OAuth + publish           | in_progress |        | Next up: TikTok OAuth + publish. |
-| 08    | AI Influencer library            | pending     |        |       |
+| 07    | TikTok OAuth + publish           | done        | 9c80a81 | TikTok OAuth, provider wiring, creator-info cache, and publish flow code are implemented. |
+| 08    | AI Influencer library            | in_progress |        | Next up: influencer CRUD and library UI. |
 | 09    | Prompt gallery                   | pending     |        |       |
 | 10    | Nano Banana generation adapter   | pending     |        |       |
 | 11    | Post creation wizard             | pending     |        |       |

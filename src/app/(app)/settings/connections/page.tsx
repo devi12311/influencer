@@ -1,7 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { disconnectConnection, forceRefreshConnection, startFacebookConnection, startInstagramConnection, startThreadsConnection } from "@/actions/connection";
+import { SocialPlatform } from "@prisma/client";
+import { disconnectConnection, forceRefreshConnection, startFacebookConnection, startInstagramConnection, startThreadsConnection, startTikTokConnection } from "@/actions/connection";
+import { TikTokCreatorInfoCard } from "@/components/connections/tiktok-creator-info";
 import { auth } from "@/server/auth";
 import { listConnections } from "@/server/services/social-connection";
 
@@ -40,6 +42,11 @@ export default async function ConnectionsPage({
         <form action={startThreadsConnection}>
           <button className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" type="submit">
             Connect Threads
+          </button>
+        </form>
+        <form action={startTikTokConnection}>
+          <button className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" type="submit">
+            Connect TikTok
           </button>
         </form>
         {params.connected ? <p className="text-sm text-emerald-600">Connected {params.connected} successfully.</p> : null}
@@ -84,6 +91,7 @@ export default async function ConnectionsPage({
                   </form>
                 </div>
               </div>
+              {connection.platform === SocialPlatform.TIKTOK ? <TikTokCreatorInfoCard connectionId={connection.id} /> : null}
             </article>
           ))}
         </section>

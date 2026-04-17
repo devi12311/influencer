@@ -142,6 +142,31 @@ export async function getThreadsConnectionCredentials(connectionId: string) {
   };
 }
 
+export async function getTikTokConnectionCredentials(connectionId: string) {
+  const connection = await db.socialConnection.findUniqueOrThrow({
+    where: { id: connectionId },
+    select: {
+      externalAccountId: true,
+      id: true,
+      platform: true,
+      userId: true,
+      accessTokenCt: true,
+      refreshTokenCt: true,
+    },
+  });
+
+  if (connection.platform !== SocialPlatform.TIKTOK) {
+    throw new Error("Connection is not a TikTok connection.");
+  }
+
+  return {
+    accessToken: open(connection.accessTokenCt, connection.userId),
+    connectionId: connection.id,
+    externalAccountId: connection.externalAccountId,
+    refreshToken: connection.refreshTokenCt ? open(connection.refreshTokenCt, connection.userId) : undefined,
+  };
+}
+
 export async function listConnections(userId: string) {
   return db.socialConnection.findMany({
     where: { userId },

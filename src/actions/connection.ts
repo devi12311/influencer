@@ -8,6 +8,7 @@ import { consumePendingFacebookPagesSelection } from "@/server/providers/faceboo
 import { buildAuthorizeUrl as buildInstagramAuthorizeUrl } from "@/server/providers/instagram/oauth";
 import { createState } from "@/server/providers/oauth-state";
 import { buildAuthorizeUrl as buildThreadsAuthorizeUrl } from "@/server/providers/threads/oauth";
+import { buildAuthorizeUrl as buildTikTokAuthorizeUrl } from "@/server/providers/tiktok/oauth";
 import { getQueue, queueNames } from "@/server/queue/queues";
 import { deleteConnection, upsertConnection } from "@/server/services/social-connection";
 
@@ -37,6 +38,12 @@ export async function startThreadsConnection() {
   const userId = await requireSessionUser();
   const { state } = await createState(userId, SocialPlatform.THREADS);
   redirect(buildThreadsAuthorizeUrl(state));
+}
+
+export async function startTikTokConnection() {
+  const userId = await requireSessionUser();
+  const { codeChallenge, state } = await createState(userId, SocialPlatform.TIKTOK);
+  redirect(buildTikTokAuthorizeUrl({ codeChallenge, state }));
 }
 
 export async function connectSelectedFacebookPages(formData: FormData) {

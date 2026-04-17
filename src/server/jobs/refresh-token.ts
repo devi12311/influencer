@@ -2,6 +2,7 @@ import { SocialPlatform } from "@prisma/client";
 import { refresh as refreshFacebookPageToken } from "@/server/providers/facebook/oauth";
 import { refresh as refreshInstagramToken } from "@/server/providers/instagram/oauth";
 import { refresh as refreshThreadsToken } from "@/server/providers/threads/oauth";
+import { refresh as refreshTikTokToken } from "@/server/providers/tiktok/oauth";
 import { db } from "@/server/db";
 import { logger } from "@/server/logger";
 import { getQueue, queueNames } from "@/server/queue/queues";
@@ -77,6 +78,31 @@ async function refreshThreadsConnection(connectionId: string) {
   });
 }
 
+async function refreshTikTokConnection(connectionId: string) {
+  const connection = await db.socialConnection.findUniqueOrThrow({ where: { id: connectionId } });
+  const tokens = await getDecryptedTokens(connectionId);
+
+  if (!tokens.refreshToken) {
+    throw new Error("TikTok refresh token is missing.");
+  }
+
+  const refreshed = await refreshTikTokToken(tokens.refreshToken);
+
+  await upsertConnection({
+    accessExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+    accessToken: refreshed.access_token,
+    avatarUrl: connection.avatarUrl,
+    displayName: connection.displayName,
+    externalAccountId: connection.externalAccountId,
+    meta: (connection.meta as Record<string, unknown> | null | undefined) ?? undefined,
+    platform: connection.platform,
+    refreshExpiresAt: new Date(Date.now() + refreshed.refresh_expires_in * 1000),
+    refreshToken: refreshed.refresh_token,
+    scopes: refreshed.scope.split(","),
+    userId: connection.userId,
+  });
+}
+
 async function refreshProviderTokens(platform: SocialPlatform, connectionId: string) {
   switch (platform) {
     case SocialPlatform.INSTAGRAM:
@@ -87,6 +113,9 @@ async function refreshProviderTokens(platform: SocialPlatform, connectionId: str
       return;
     case SocialPlatform.THREADS:
       await refreshThreadsConnection(connectionId);
+      return;
+    case SocialPlatform.TIKTOK:
+      await refreshTikTokConnection(connectionId);
       return;
     default:
       throw new Error(`Refresh handling for ${platform} is not implemented yet.`);
