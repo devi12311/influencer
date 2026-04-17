@@ -19,7 +19,22 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ENV SKIP_ENV_VALIDATION=1
+ENV SKIP_ENV_VALIDATION=1 \
+    DATABASE_URL=postgres://build:build@localhost:5432/build \
+    REDIS_URL=redis://localhost:6379 \
+    MINIO_ENDPOINT=http://localhost:9000 \
+    MINIO_ACCESS_KEY=build \
+    MINIO_SECRET_KEY=build \
+    MINIO_BUCKET=build \
+    MINIO_REGION=us-east-1 \
+    MINIO_PUBLIC_BASE_URL=http://localhost:9000 \
+    AUTH_SECRET=build-secret \
+    AUTH_URL=http://localhost:3000 \
+    MASTER_KEY=build-master-key \
+    INSTAGRAM_REDIRECT_URI=http://localhost:3000/api/oauth/instagram/callback \
+    FACEBOOK_REDIRECT_URI=http://localhost:3000/api/oauth/facebook/callback \
+    THREADS_REDIRECT_URI=http://localhost:3000/api/oauth/threads/callback \
+    TIKTOK_REDIRECT_URI=http://localhost:3000/api/oauth/tiktok/callback
 RUN pnpm build
 
 FROM base AS prod-deps
