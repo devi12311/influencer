@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,7 +17,6 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 export function LoginForm({ redirectTo }: { redirectTo?: string }) {
-  const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const {
     formState: { errors, isSubmitting },
@@ -40,8 +38,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           return;
         }
 
-        router.push(result.redirectTo ?? "/");
-        router.refresh();
+        window.location.assign(result.redirectTo ?? "/");
       })}
     >
       <div className="space-y-1">

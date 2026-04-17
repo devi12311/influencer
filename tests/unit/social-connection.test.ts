@@ -6,6 +6,7 @@ const dbMock = {
     updateMany: vi.fn(),
   },
   socialConnection: {
+    findFirstOrThrow: vi.fn(),
     findMany: vi.fn(),
     findUniqueOrThrow: vi.fn(),
     update: vi.fn(),
@@ -56,6 +57,7 @@ describe("social connection service", () => {
 
   it("marks active publications as failed when revoking a connection", async () => {
     dbMock.postPublication.updateMany.mockResolvedValue({ count: 2 });
+    dbMock.socialConnection.findFirstOrThrow.mockResolvedValue({ id: "connection-1", userId: "user-1" });
     dbMock.socialConnection.update.mockResolvedValue({ id: "connection-1", status: "revoked" });
 
     await service.deleteConnection("connection-1", "user-1");
