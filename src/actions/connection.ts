@@ -5,8 +5,9 @@ import { SocialPlatform } from "@prisma/client";
 import { auth } from "@/server/auth";
 import { buildAuthorizeUrl as buildFacebookAuthorizeUrl, getFacebookScopes } from "@/server/providers/facebook/oauth";
 import { consumePendingFacebookPagesSelection } from "@/server/providers/facebook/pending-pages";
-import { buildAuthorizeUrl as buildInstagramAuthorizeUrl, getInstagramScopes } from "@/server/providers/instagram/oauth";
+import { buildAuthorizeUrl as buildInstagramAuthorizeUrl } from "@/server/providers/instagram/oauth";
 import { createState } from "@/server/providers/oauth-state";
+import { buildAuthorizeUrl as buildThreadsAuthorizeUrl } from "@/server/providers/threads/oauth";
 import { getQueue, queueNames } from "@/server/queue/queues";
 import { deleteConnection, upsertConnection } from "@/server/services/social-connection";
 
@@ -30,6 +31,12 @@ export async function startFacebookConnection() {
   const userId = await requireSessionUser();
   const { state } = await createState(userId, SocialPlatform.FACEBOOK_PAGE);
   redirect(buildFacebookAuthorizeUrl(state));
+}
+
+export async function startThreadsConnection() {
+  const userId = await requireSessionUser();
+  const { state } = await createState(userId, SocialPlatform.THREADS);
+  redirect(buildThreadsAuthorizeUrl(state));
 }
 
 export async function connectSelectedFacebookPages(formData: FormData) {

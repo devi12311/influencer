@@ -8,8 +8,8 @@
 | 03    | Media pipeline                   | done        | 33802c8 | Presigned uploads, media metadata, Sharp thumbnail jobs, and the upload UI are implemented. |
 | 04    | Instagram OAuth + publish        | done        | ceb338c | Instagram OAuth, provider wiring, callback flow, and publish job code are implemented. |
 | 05    | Facebook Page OAuth + publish    | done        | 0b82e52 | Facebook Page OAuth, page selection, provider wiring, and publish flow code are implemented. |
-| 06    | Threads OAuth + publish          | in_progress |        | Next up: Threads OAuth + publish. |
-| 07    | TikTok OAuth + publish           | pending     |        |       |
+| 06    | Threads OAuth + publish          | done        | 6a5c5d5 | Threads OAuth, provider wiring, callback flow, and publish flow code are implemented. |
+| 07    | TikTok OAuth + publish           | in_progress |        | Next up: TikTok OAuth + publish. |
 | 08    | AI Influencer library            | pending     |        |       |
 | 09    | Prompt gallery                   | pending     |        |       |
 | 10    | Nano Banana generation adapter   | pending     |        |       |
