@@ -26,8 +26,9 @@ RUN apk add --no-cache libc6-compat
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prod
-RUN pnpm exec prisma generate
+    pnpm install --frozen-lockfile \
+ && pnpm exec prisma generate \
+ && pnpm prune --prod
 
 FROM node:${NODE_VERSION} AS web
 WORKDIR /app
