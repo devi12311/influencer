@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  username          String             @unique
+  passwordHash      String
+  emailVerifiedAt   DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  sessions          Session[]
+  socialConnections SocialConnection[]
+  influencers       Influencer[]
+  prompts           Prompt[]
+  generations       Generation[]
+  posts             Post[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  expiresAt    DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK_PAGE
+  THREADS
+  TIKTOK
+}
+
+model SocialConnection {
+  id                String         @id @default(cuid())
+  userId            String
+  platform          SocialPlatform
+  externalAccountId String
+  displayName       String?
+  avatarUrl         String?
+  scopes            String[]
+  accessTokenCt     String         @db.Text
+  refreshTokenCt    String?        @db.Text
+  accessExpiresAt   DateTime?
+  refreshExpiresAt  DateTime?
+  meta              Json?
+  status            String         @default("active")
+  connectedAt       DateTime       @default(now())
+  lastRefreshedAt   DateTime?
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts             PostPublication[]
+
+  @@unique([userId, platform, externalAccountId])
+  @@index([userId, platform])
+}
+
+model Influencer {
+  id          String            @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  styleNotes  String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets      InfluencerAsset[]
+  posts       Post[]
+  generations Generation[]
+
+  @@index([userId])
+}
+
+model InfluencerAsset {
+  id           String      @id @default(cuid())
+  influencerId String
+  mediaObjectId String     @unique
+  isCanonical  Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  influencer   Influencer  @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  mediaObject  MediaObject @relation(fields: [mediaObjectId], references: [id])
+
+  @@index([influencerId, isCanonical])
+}
+
+model Prompt {
+  id          String            @id @default(cuid())
+  userId      String
+  title       String
+  text        String            @db.Text
+  tags        String[]
+  isFavorite  Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  references  PromptReference[]
+  generations Generation[]
+
+  @@index([userId, isFavorite])
+}
+
+model PromptReference {
+  id            String      @id @default(cuid())
+  promptId      String
+  mediaObjectId String
+  sortOrder     Int         @default(0)
+  prompt        Prompt      @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  mediaObject   MediaObject @relation(fields: [mediaObjectId], references: [id])
+
+  @@index([promptId])
+}
+
+enum MediaKind {
+  INFLUENCER_ASSET
+  PROMPT_REFERENCE
+  GENERATED_IMAGE
+  POST_MEDIA
+}
+
+model MediaObject {
+  id               String             @id @default(cuid())
+  userId           String
+  kind             MediaKind
+  bucket           String
+  objectKey        String             @unique
+  mimeType         String
+  sizeBytes        BigInt
+  width            Int?
+  height           Int?
+  contentHash      String?
+  synthId          Boolean?
+  createdAt        DateTime           @default(now())
+  variants         MediaVariant[]
+  influencerAssets InfluencerAsset[]
+  promptReferences PromptReference[]
+  postMedia        PostMedia[]
+  generatedOutputs Generation[]       @relation("GeneratedOutput")
+
+  @@index([userId, kind])
+}
+
+model MediaVariant {
+  id            String      @id @default(cuid())
+  mediaObjectId String
+  label         String
+  bucket        String
+  objectKey     String      @unique
+  mimeType      String
+  width         Int
+  height        Int
+  sizeBytes     BigInt
+  mediaObject   MediaObject @relation(fields: [mediaObjectId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaObjectId, label])
+}
+
+enum GenerationStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model Generation {
+  id             String           @id @default(cuid())
+  userId         String
+  influencerId   String
+  promptId       String
+  promptSnapshot String           @db.Text
+  inputMediaIds  String[]
+  model          String
+  aspectRatio    String
+  imageSize      String
+  status         GenerationStatus @default(PENDING)
+  errorMessage   String?
+  outputMediaId  String?
+  tokensIn       Int?
+  tokensOut      Int?
+  costUsd        Decimal?         @db.Decimal(10, 6)
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  influencer     Influencer       @relation(fields: [influencerId], references: [id])
+  prompt         Prompt           @relation(fields: [promptId], references: [id])
+  outputMedia    MediaObject?     @relation("GeneratedOutput", fields: [outputMediaId], references: [id])
+
+  @@index([userId, status])
+}
+
+model Post {
+  id           String            @id @default(cuid())
+  userId       String
+  influencerId String?
+  title        String?
+  caption      String?           @db.Text
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  influencer   Influencer?       @relation(fields: [influencerId], references: [id])
+  media        PostMedia[]
+  publications PostPublication[]
+
+  @@index([userId, createdAt])
+}
+
+model PostMedia {
+  id            String      @id @default(cuid())
+  postId        String
+  mediaObjectId String
+  sortOrder     Int         @default(0)
+  post          Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mediaObject   MediaObject @relation(fields: [mediaObjectId], references: [id])
+
+  @@unique([postId, sortOrder])
+}
+
+enum PublicationStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
+model PostPublication {
+  id                 String            @id @default(cuid())
+  postId             String
+  socialConnectionId String
+  platform           SocialPlatform
+  caption            String?           @db.Text
+  options            Json?
+  scheduledAt        DateTime?
+  status             PublicationStatus @default(DRAFT)
+  externalId         String?
+  errorMessage       String?
+  publishedAt        DateTime?
+  post               Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialConnection   SocialConnection  @relation(fields: [socialConnectionId], references: [id])
+
+  @@index([status, scheduledAt])
+  @@index([postId])
+}
