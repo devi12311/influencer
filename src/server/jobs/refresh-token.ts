@@ -1,7 +1,8 @@
 import { SocialPlatform } from "@prisma/client";
+import { refresh as refreshInstagramToken } from "@/server/providers/instagram/oauth";
 import { getQueue, queueNames } from "@/server/queue/queues";
 import { db } from "@/server/db";
-import { getDecryptedTokens, markNeedsReauth } from "@/server/services/social-connection";
+import { getDecryptedTokens, markNeedsReauth, upsertConnection } from "@/server/services/social-connection";
 import { logger } from "@/server/logger";
 
 export const REFRESH_SCAN_SENTINEL = "__scan__";
@@ -12,11 +13,31 @@ interface RefreshJobData {
 }
 
 async function refreshProviderTokens(platform: SocialPlatform, connectionId: string) {
+  if (platform !== SocialPlatform.INSTAGRAM) {
+    throw new Error(`Refresh handling for ${platform} is not implemented yet.`);
+  }
+
+  const connection = await db.socialConnection.findUniqueOrThrow({
+    where: { id: connectionId },
+  });
   const tokens = await getDecryptedTokens(connectionId);
+  const refreshed = await refreshInstagramToken(tokens.accessToken);
 
-  logger.info({ connectionId, hasRefreshToken: Boolean(tokens.refreshToken), platform }, "Refresh token stub invoked");
+  await upsertConnection({
+    accessExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+    accessToken: refreshed.access_token,
+    avatarUrl: connection.avatarUrl,
+    displayName: connection.displayName,
+    externalAccountId: connection.externalAccountId,
+    meta: (connection.meta as Record<string, unknown> | null | undefined) ?? undefined,
+    platform: connection.platform,
+    refreshExpiresAt: connection.refreshExpiresAt,
+    refreshToken: tokens.refreshToken,
+    scopes: connection.scopes,
+    userId: connection.userId,
+  });
 
-  throw new Error(`Refresh handling for ${platform} is not implemented yet.`);
+  logger.info({ connectionId, platform }, "Refreshed provider access token");
 }
 
 export async function enqueueRefreshScanJob() {

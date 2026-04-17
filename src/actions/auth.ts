@@ -85,7 +85,6 @@ function flattenZodError(error: z.ZodError) {
 
 export async function signUp(input: unknown): Promise<ActionResult> {
   const parsed = signUpSchema.safeParse(input);
-  console.log(parsed)
   if (!parsed.success) {
     return {
       fieldErrors: flattenZodError(parsed.error),

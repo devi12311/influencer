@@ -6,8 +6,8 @@
 | 01    | Credentials auth                 | done        | 4793c8d | Credentials auth, protected shell, settings security, and Playwright auth flow are green. |
 | 02    | Token vault & SocialConnection   | done        | 4793c8d | Vault encryption, OAuth state helpers, refresh stub, and empty connections UI are in place. |
 | 03    | Media pipeline                   | done        | 33802c8 | Presigned uploads, media metadata, Sharp thumbnail jobs, and the upload UI are implemented. |
-| 04    | Instagram OAuth + publish        | pending     |        |       |
-| 05    | Facebook Page OAuth + publish    | pending     |        |       |
+| 04    | Instagram OAuth + publish        | done        | ceb338c | Instagram OAuth, provider wiring, callback flow, and publish job code are implemented. |
+| 05    | Facebook Page OAuth + publish    | in_progress |        | Next up: Facebook Page OAuth + publish. |
 | 06    | Threads OAuth + publish          | pending     |        |       |
 | 07    | TikTok OAuth + publish           | pending     |        |       |
 | 08    | AI Influencer library            | pending     |        |       |

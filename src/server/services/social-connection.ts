@@ -5,6 +5,8 @@ import { db } from "@/server/db";
 export interface UpsertConnectionInput {
   accessExpiresAt?: Date | null;
   accessToken: string;
+  avatarUrl?: string | null;
+  displayName?: string | null;
   externalAccountId: string;
   meta?: Record<string, unknown> | null;
   platform: SocialPlatform;
@@ -26,6 +28,8 @@ export async function upsertConnection(input: UpsertConnectionInput) {
     update: {
       accessExpiresAt: input.accessExpiresAt,
       accessTokenCt: seal(input.accessToken, input.userId),
+      avatarUrl: input.avatarUrl,
+      displayName: input.displayName,
       lastRefreshedAt: new Date(),
       meta: (input.meta as Prisma.InputJsonValue | null | undefined) ?? undefined,
       refreshExpiresAt: input.refreshExpiresAt,
@@ -36,6 +40,8 @@ export async function upsertConnection(input: UpsertConnectionInput) {
     create: {
       accessExpiresAt: input.accessExpiresAt,
       accessTokenCt: seal(input.accessToken, input.userId),
+      avatarUrl: input.avatarUrl,
+      displayName: input.displayName,
       externalAccountId: input.externalAccountId,
       meta: (input.meta as Prisma.InputJsonValue | null | undefined) ?? undefined,
       platform: input.platform,
@@ -63,6 +69,31 @@ export async function getDecryptedTokens(connectionId: string) {
   };
 }
 
+export async function getInstagramConnectionCredentials(connectionId: string) {
+  const connection = await db.socialConnection.findUniqueOrThrow({
+    where: { id: connectionId },
+    select: {
+      externalAccountId: true,
+      id: true,
+      platform: true,
+      userId: true,
+      accessTokenCt: true,
+      refreshTokenCt: true,
+    },
+  });
+
+  if (connection.platform !== SocialPlatform.INSTAGRAM) {
+    throw new Error("Connection is not an Instagram connection.");
+  }
+
+  return {
+    accessToken: open(connection.accessTokenCt, connection.userId),
+    connectionId: connection.id,
+    externalAccountId: connection.externalAccountId,
+    refreshToken: connection.refreshTokenCt ? open(connection.refreshTokenCt, connection.userId) : undefined,
+  };
+}
+
 export async function listConnections(userId: string) {
   return db.socialConnection.findMany({
     where: { userId },
@@ -74,6 +105,7 @@ export async function listConnections(userId: string) {
       externalAccountId: true,
       id: true,
       lastRefreshedAt: true,
+      meta: true,
       platform: true,
       scopes: true,
       status: true,
@@ -92,6 +124,10 @@ export async function markNeedsReauth(connectionId: string, reason: string) {
 }
 
 export async function deleteConnection(connectionId: string, userId: string) {
+  const connection = await db.socialConnection.findFirstOrThrow({
+    where: { id: connectionId, userId },
+  });
+
   await db.postPublication.updateMany({
     where: {
       socialConnectionId: connectionId,
@@ -106,10 +142,7 @@ export async function deleteConnection(connectionId: string, userId: string) {
   });
 
   return db.socialConnection.update({
-    where: {
-      id: connectionId,
-      userId,
-    },
+    where: { id: connection.id },
     data: {
       status: "revoked",
     },
