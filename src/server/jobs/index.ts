@@ -1,5 +1,6 @@
 import { Worker } from "bullmq";
 import { runDeriveThumbnailsJob } from "@/server/jobs/derive-thumbnails";
+import { runGenerateImageJob } from "@/server/jobs/generate-image";
 import { runPublishPostJob } from "@/server/jobs/publish-post";
 import { enqueueRefreshScanJob, runRefreshTokenJob } from "@/server/jobs/refresh-token";
 import { logger } from "@/server/logger";
@@ -20,6 +21,9 @@ export async function bootWorkerRuntime(): Promise<WorkerRuntime> {
   const deriveThumbnailsWorker = new Worker(queueNames.deriveThumbnails, async (job) => runDeriveThumbnailsJob(job.data), {
     connection: createBullMqConnection(),
   });
+  const generateImageWorker = new Worker(queueNames.generateImage, async (job) => runGenerateImageJob(job.data), {
+    connection: createBullMqConnection(),
+  });
   const publishPostWorker = new Worker(queueNames.publishPost, async (job) => runPublishPostJob(job.data), {
     connection: createBullMqConnection(),
   });
@@ -27,6 +31,7 @@ export async function bootWorkerRuntime(): Promise<WorkerRuntime> {
   for (const [queueName, worker] of [
     [queueNames.refreshToken, refreshWorker],
     [queueNames.deriveThumbnails, deriveThumbnailsWorker],
+    [queueNames.generateImage, generateImageWorker],
     [queueNames.publishPost, publishPostWorker],
   ] as const) {
     worker.on("failed", (job, error) => {
@@ -42,7 +47,7 @@ export async function bootWorkerRuntime(): Promise<WorkerRuntime> {
   );
 
   const shutdown = createShutdownController(async (signal) => {
-    await Promise.all([refreshWorker.close(), deriveThumbnailsWorker.close(), publishPostWorker.close()]);
+    await Promise.all([refreshWorker.close(), deriveThumbnailsWorker.close(), generateImageWorker.close(), publishPostWorker.close()]);
     await closeQueues();
     logger.info({ signal }, "Worker runtime shutting down");
   });

@@ -12,7 +12,7 @@
 | 07    | TikTok OAuth + publish           | done        | 9c80a81 | TikTok OAuth, provider wiring, creator-info cache, and publish flow code are implemented. |
 | 08    | AI Influencer library            | done        | 066cfab | Influencer CRUD, canonical asset management, and library/detail UI are implemented. |
 | 09    | Prompt gallery                   | done        | b78e8eb | Prompt CRUD, refs, filters, and favorite flow are implemented. |
-| 10    | Nano Banana generation adapter   | in_progress |        | Next up: image generation adapter and jobs. |
-| 11    | Post creation wizard             | pending     |        |       |
+| 10    | Nano Banana generation adapter   | done        | 36e8522 | Nano Banana generator, generation job/service, polling API, and sandbox UI are implemented. |
+| 11    | Post creation wizard             | in_progress |        | Next up: wizard flow built on the new generation adapter. |
 | 12    | Posts gallery & publishing UI    | pending     |        |       |
 | 13    | Scheduling & observability       | pending     |        |       |
