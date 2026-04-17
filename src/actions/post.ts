@@ -1,10 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { PublicationStatus, type SocialPlatform } from "@prisma/client";
 import { auth } from "@/server/auth";
-import { generateImage } from "@/actions/generation";
+import { getQueue, queueNames } from "@/server/queue/queues";
 import { savePostFromDraft as persistPostFromDraft } from "@/server/services/post";
 import { updatePostDraft } from "@/server/services/post-draft";
+import { db } from "@/server/db";
 
 async function requireUserId() {
   const session = await auth();
@@ -12,6 +14,31 @@ async function requireUserId() {
     redirect("/login?redirect=/new-post");
   }
   return session.userId;
+}
+
+function parseBoolean(value: FormDataEntryValue | null) {
+  return String(value ?? "") === "true" || String(value ?? "") === "on";
+}
+
+function parseOptionalString(value: FormDataEntryValue | null) {
+  const parsed = String(value ?? "").trim();
+  return parsed.length > 0 ? parsed : undefined;
+}
+
+async function enqueuePublication(publicationId: string, scheduledAt?: Date) {
+  const delay = scheduledAt ? Math.max(0, scheduledAt.getTime() - Date.now()) : 0;
+  await getQueue(queueNames.publishPost).add(
+    queueNames.publishPost,
+    { publicationId },
+    {
+      attempts: 3,
+      backoff: {
+        delay: 5_000,
+        type: "exponential",
+      },
+      delay,
+    },
+  );
 }
 
 export async function selectDraftInfluencerAction(formData: FormData) {
@@ -53,6 +80,7 @@ export async function startDraftGeneration(input: { aspectRatio?: "1:1" | "4:5" 
     throw new Error("Select an influencer and a prompt before generating.");
   }
 
+  const { generateImage } = await import("@/actions/generation");
   const result = await generateImage({
     aspectRatio: input.aspectRatio,
     influencerId: draft.influencerId,
@@ -93,4 +121,99 @@ export async function savePostFromDraftAction(formData: FormData) {
   });
 
   redirect(`/posts/${postId}`);
+}
+
+export async function createPublicationsAction(formData: FormData) {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  const selectedConnectionIds = formData
+    .getAll("selectedConnectionIds")
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  const post = await db.post.findFirstOrThrow({
+    where: { id: postId, userId },
+  });
+
+  const connections = await db.socialConnection.findMany({
+    where: {
+      id: { in: selectedConnectionIds },
+      status: { in: ["active", "needs_reauth"] },
+      userId,
+    },
+  });
+
+  for (const connection of connections) {
+    const caption = parseOptionalString(formData.get(`caption_${connection.id}`));
+    const privacyLevel = parseOptionalString(formData.get(`privacy_${connection.id}`));
+    const replyControl = parseOptionalString(formData.get(`reply_${connection.id}`));
+    const scheduledAtValue = parseOptionalString(formData.get(`scheduledAt_${connection.id}`));
+    const scheduledAt = scheduledAtValue ? new Date(scheduledAtValue) : undefined;
+    const options: Record<string, unknown> = {
+      disable_comment: parseBoolean(formData.get(`disableComment_${connection.id}`)),
+    };
+
+    if (privacyLevel) options.privacy_level = privacyLevel;
+    if (replyControl) options.reply_control = replyControl;
+    if (connection.platform === "TIKTOK") {
+      options.auto_add_music = parseBoolean(formData.get(`autoMusic_${connection.id}`));
+    }
+
+    const existingPublication = await db.postPublication.findFirst({
+      where: {
+        postId: post.id,
+        socialConnectionId: connection.id,
+      },
+    });
+
+    const publication = existingPublication
+      ? await db.postPublication.update({
+          where: { id: existingPublication.id },
+          data: {
+            caption,
+            errorMessage: null,
+            options,
+            platform: connection.platform as SocialPlatform,
+            scheduledAt,
+            status: scheduledAt && scheduledAt > new Date() ? PublicationStatus.SCHEDULED : PublicationStatus.DRAFT,
+          },
+        })
+      : await db.postPublication.create({
+          data: {
+            caption,
+            options,
+            platform: connection.platform as SocialPlatform,
+            postId: post.id,
+            scheduledAt,
+            socialConnectionId: connection.id,
+            status: scheduledAt && scheduledAt > new Date() ? PublicationStatus.SCHEDULED : PublicationStatus.DRAFT,
+          },
+        });
+
+    await enqueuePublication(publication.id, scheduledAt);
+  }
+
+  redirect(`/posts/${post.id}`);
+}
+
+export async function retryPublicationAction(formData: FormData) {
+  const userId = await requireUserId();
+  const publicationId = String(formData.get("publicationId") ?? "");
+
+  const publication = await db.postPublication.findFirstOrThrow({
+    where: {
+      id: publicationId,
+      post: { userId },
+    },
+  });
+
+  await db.postPublication.update({
+    where: { id: publication.id },
+    data: {
+      errorMessage: null,
+      status: PublicationStatus.DRAFT,
+    },
+  });
+
+  await enqueuePublication(publication.id);
+  redirect(`/posts/${publication.postId}`);
 }

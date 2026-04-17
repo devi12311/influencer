@@ -1,3 +1,4 @@
+import { PublicationStatus, SocialPlatform } from "@prisma/client";
 import { db } from "@/server/db";
 import { clearPostDraft, getPostDraft } from "@/server/services/post-draft";
 
@@ -48,9 +49,30 @@ export async function savePostFromDraft(input: {
   return post.id;
 }
 
-export async function listPostsByUser(userId: string) {
+export async function listPostsByUser(input: {
+  dateFrom?: string;
+  influencerId?: string;
+  platform?: SocialPlatform;
+  status?: PublicationStatus;
+  userId: string;
+}) {
+  const dateFilter = input.dateFrom ? new Date(input.dateFrom) : undefined;
+
   return db.post.findMany({
-    where: { userId },
+    where: {
+      createdAt: dateFilter ? { gte: dateFilter } : undefined,
+      influencerId: input.influencerId,
+      publications:
+        input.platform || input.status
+          ? {
+              some: {
+                platform: input.platform,
+                status: input.status,
+              },
+            }
+          : undefined,
+      userId: input.userId,
+    },
     include: {
       influencer: true,
       media: {
@@ -63,9 +85,14 @@ export async function listPostsByUser(userId: string) {
         },
         orderBy: { sortOrder: "asc" },
       },
-      publications: true,
+      publications: {
+        include: {
+          socialConnection: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
+    take: 60,
   });
 }
 
@@ -89,6 +116,28 @@ export async function getPostById(input: { id: string; userId: string }) {
           socialConnection: true,
         },
       },
+    },
+  });
+}
+
+export async function listPublishableConnections(userId: string) {
+  return db.socialConnection.findMany({
+    where: {
+      platform: {
+        in: [SocialPlatform.INSTAGRAM, SocialPlatform.FACEBOOK_PAGE, SocialPlatform.THREADS, SocialPlatform.TIKTOK],
+      },
+      status: {
+        in: ["active", "needs_reauth"],
+      },
+      userId,
+    },
+    orderBy: [{ platform: "asc" }, { displayName: "asc" }],
+    select: {
+      displayName: true,
+      externalAccountId: true,
+      id: true,
+      platform: true,
+      status: true,
     },
   });
 }
