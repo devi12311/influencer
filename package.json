@@ -10,7 +10,7 @@
     "build:worker": "tsup src/worker.ts --format cjs --target node22 --out-dir dist --clean",
     "start": "next start",
     "start:worker": "node dist/worker.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node -e \"require('node:fs').rmSync('.next/types',{recursive:true,force:true})\" && tsc --noEmit",
     "test": "vitest --run",
     "test:e2e": "playwright test",
     "lint": "eslint src tests next.config.ts playwright.config.ts vitest.config.ts eslint.config.mjs",

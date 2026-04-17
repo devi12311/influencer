@@ -1,6 +1,27 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const isProduction = process.env.NODE_ENV === "production";
+const devMasterKey = Buffer.from("ai-influencer-dev-master-key-32-bytes!!").toString("base64");
+
+function withHttpProtocol(value: unknown) {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `http://${trimmed}`;
+}
+
 const optionalSecret = z.preprocess((value) => {
   if (typeof value !== "string") {
     return value;
@@ -10,20 +31,35 @@ const optionalSecret = z.preprocess((value) => {
   return trimmed.length > 0 ? trimmed : undefined;
 }, z.string().min(1).optional());
 
+const requiredSecret = (fallback: string) =>
+  z.preprocess((value) => {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+
+    if (!isProduction) {
+      return fallback;
+    }
+
+    return value;
+  }, z.string().min(1));
+
+const normalizedUrl = z.preprocess(withHttpProtocol, z.string().url());
+
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().url(),
-    MINIO_ENDPOINT: z.string().url(),
+    MINIO_ENDPOINT: normalizedUrl,
     MINIO_ACCESS_KEY: z.string().min(1),
     MINIO_SECRET_KEY: z.string().min(1),
     MINIO_BUCKET: z.string().min(1),
     MINIO_REGION: z.string().min(1),
-    MINIO_PUBLIC_BASE_URL: z.string().url(),
-    AUTH_SECRET: z.string().min(1),
+    MINIO_PUBLIC_BASE_URL: normalizedUrl,
+    AUTH_SECRET: requiredSecret("ai-influencer-dev-auth-secret"),
     AUTH_URL: z.string().url(),
-    MASTER_KEY: z.string().min(1),
+    MASTER_KEY: requiredSecret(devMasterKey),
     GOOGLE_GENAI_API_KEY: optionalSecret,
     INSTAGRAM_CLIENT_ID: optionalSecret,
     INSTAGRAM_CLIENT_SECRET: optionalSecret,
