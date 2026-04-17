@@ -11,8 +11,8 @@
 | 06    | Threads OAuth + publish          | done        | 6a5c5d5 | Threads OAuth, provider wiring, callback flow, and publish flow code are implemented. |
 | 07    | TikTok OAuth + publish           | done        | 9c80a81 | TikTok OAuth, provider wiring, creator-info cache, and publish flow code are implemented. |
 | 08    | AI Influencer library            | done        | 066cfab | Influencer CRUD, canonical asset management, and library/detail UI are implemented. |
-| 09    | Prompt gallery                   | in_progress |        | Next up: prompt CRUD, refs, filters, and favorite flow. |
-| 10    | Nano Banana generation adapter   | pending     |        |       |
+| 09    | Prompt gallery                   | done        | b78e8eb | Prompt CRUD, refs, filters, and favorite flow are implemented. |
+| 10    | Nano Banana generation adapter   | in_progress |        | Next up: image generation adapter and jobs. |
 | 11    | Post creation wizard             | pending     |        |       |
 | 12    | Posts gallery & publishing UI    | pending     |        |       |
 | 13    | Scheduling & observability       | pending     |        |       |
