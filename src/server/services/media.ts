@@ -31,7 +31,7 @@ size: MediaVariantSize) {
   const variant = size === "original" ? null : media.variants.find((candidate) => candidate.label === size);
   const key = variant?.objectKey ?? media.objectKey;
 
-  if (process.env.NODE_ENV == "production") {
+  if (process.env.NODE_ENV !== "production") {
     return buildPublicUrl(key);
   }
 
