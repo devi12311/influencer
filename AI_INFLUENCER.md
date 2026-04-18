@@ -1941,4 +1941,9 @@ Check this list before every commit. If any bullet is violated, fix it first.
 
 ---
 
+
+## PROBLEMS
+
+1- Minio cannot perform headobject command for a domain behind a cloudflare domain, solution found in this artice www.linkedin.com/pulse/resolving-minio-behind-cloudflare-proxy-403-error-bhavesh-deshmukh-pk1nf
+
 **End of blueprint. Agent: start at §0 and do not deviate.**

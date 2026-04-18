@@ -195,9 +195,8 @@ export async function createPublicationsAction(formData: FormData) {
   redirect(`/posts/${post.id}`);
 }
 
-export async function retryPublicationAction(formData: FormData) {
+export async function retryPublicationAction(publicationId: string) {
   const userId = await requireUserId();
-  const publicationId = String(formData.get("publicationId") ?? "");
 
   const publication = await db.postPublication.findFirstOrThrow({
     where: {
@@ -218,9 +217,8 @@ export async function retryPublicationAction(formData: FormData) {
   redirect(`/posts/${publication.postId}`);
 }
 
-export async function cancelScheduledPublicationAction(formData: FormData) {
+export async function cancelScheduledPublicationAction(publicationId: string) {
   const userId = await requireUserId();
-  const publicationId = String(formData.get("publicationId") ?? "");
 
   const publication = await db.postPublication.findFirstOrThrow({
     where: {

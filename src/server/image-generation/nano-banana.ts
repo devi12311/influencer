@@ -43,7 +43,7 @@ export class NanoBananaGenerator implements ImageGenerator {
           aspectRatio: input.aspectRatio ?? "4:5",
           imageSize: input.imageSize ?? "2K",
         },
-        responseModalities: ["TEXT", "IMAGE"],
+        responseModalities: ["IMAGE"],
       },
       contents: parts,
       model: input.model ?? DEFAULT_MODEL,

@@ -95,20 +95,26 @@ export function PublishPanel({
 
                 <div className="flex flex-wrap gap-2">
                   {publication?.status === "FAILED" ? (
-                    <form action={retryPublicationAction}>
-                      <input name="publicationId" type="hidden" value={publication.id} />
-                      <button className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700" type="submit">
-                        Retry failed publication
-                      </button>
-                    </form>
+                    <button
+                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700"
+                      formAction={retryPublicationAction.bind(null, publication.id)}
+                      formNoValidate
+                      formMethod="post"
+                      type="submit"
+                    >
+                      Retry failed publication
+                    </button>
                   ) : null}
                   {publication?.status === "SCHEDULED" ? (
-                    <form action={cancelScheduledPublicationAction}>
-                      <input name="publicationId" type="hidden" value={publication.id} />
-                      <button className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700" type="submit">
-                        Cancel schedule
-                      </button>
-                    </form>
+                    <button
+                      className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700"
+                      formAction={cancelScheduledPublicationAction.bind(null, publication.id)}
+                      formNoValidate
+                      formMethod="post"
+                      type="submit"
+                    >
+                      Cancel schedule
+                    </button>
                   ) : null}
                 </div>
               </section>

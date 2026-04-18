@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { db } from "@/server/db";
 import { resolvePostingProvider } from "@/server/providers/registry";
 import { getQueue, queueNames } from "@/server/queue/queues";
-import { buildPublicUrl, readObjectBytes, uploadObject } from "@/server/storage/minio";
+import {buildPublicUrl, presignGet, readObjectBytes, uploadObject} from "@/server/storage/minio";
 
 const TIKTOK_STATUS_POLL_DELAY_MS = 15_000;
 const TIKTOK_STATUS_POLL_LIMIT = 20;
@@ -22,7 +22,7 @@ async function createInstagramPublishableImageUrl(mediaObject: {
   objectKey: string;
 }) {
   if (mediaObject.mimeType === "image/jpeg") {
-    return ensureHttpsUrl(buildPublicUrl(mediaObject.objectKey));
+    return ensureHttpsUrl(await presignGet(mediaObject.objectKey));
   }
 
   const originalBytes = await readObjectBytes(mediaObject.objectKey);
@@ -30,21 +30,21 @@ async function createInstagramPublishableImageUrl(mediaObject: {
   const publishKey = `${mediaObject.objectKey}.instagram-publish.jpg`;
 
   await uploadObject(publishKey, jpegBytes, "image/jpeg");
-  return ensureHttpsUrl(buildPublicUrl(publishKey));
+  return ensureHttpsUrl(await presignGet(publishKey));
 }
 
 async function createTikTokPublishableImageUrls(postMedia: Array<{ mediaObject: { mimeType: string; objectKey: string } }>) {
   return Promise.all(
     postMedia.map(async ({ mediaObject }) => {
       if (mediaObject.mimeType === "image/png" || mediaObject.mimeType === "image/jpeg" || mediaObject.mimeType === "image/webp") {
-        return ensureHttpsUrl(buildPublicUrl(mediaObject.objectKey));
+        return ensureHttpsUrl(await presignGet(mediaObject.objectKey));
       }
 
       const originalBytes = await readObjectBytes(mediaObject.objectKey);
       const pngBytes = await sharp(originalBytes).png().toBuffer();
       const publishKey = `${mediaObject.objectKey}.tiktok-publish.png`;
       await uploadObject(publishKey, pngBytes, "image/png");
-      return ensureHttpsUrl(buildPublicUrl(publishKey));
+      return ensureHttpsUrl(await presignGet(publishKey));
     }),
   );
 }
