@@ -1,6 +1,7 @@
 "use server";
 
 import { createHash, randomUUID } from "node:crypto";
+import { headers } from "next/headers";
 import path from "node:path";
 import { MediaKind } from "@prisma/client";
 import sharp from "sharp";
@@ -8,6 +9,8 @@ import { z } from "zod";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
 import { getQueue, queueNames } from "@/server/queue/queues";
+import { withRequestLogger } from "@/server/logger";
+import { getOrCreateRequestId } from "@/server/observability/request-id";
 import { headObject, presignPut, readObjectBytes } from "@/server/storage/minio";
 
 const MAX_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024;
@@ -48,6 +51,31 @@ function assertUploadableKind(kind: MediaKind) {
   }
 }
 
+
+function serializeStorageError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return { value: String(error) };
+  }
+
+  const storageError = error as Error & {
+    Code?: string;
+    Key?: string;
+    Bucket?: string;
+    $fault?: string;
+    $metadata?: Record<string, unknown>;
+  };
+
+  return {
+    bucket: storageError.Bucket,
+    code: storageError.Code,
+    fault: storageError.$fault,
+    key: storageError.Key,
+    message: storageError.message,
+    metadata: storageError.$metadata,
+    name: storageError.name,
+  };
+}
+
 function createObjectKey(userId: string, kind: MediaKind, filename: string, contentType: string) {
   const extension = getFileExtension(filename, contentType);
   const slug = kind.toLowerCase();
@@ -55,6 +83,8 @@ function createObjectKey(userId: string, kind: MediaKind, filename: string, cont
 }
 
 export async function presignUpload(input: unknown) {
+  const requestHeaders = await headers();
+  const requestLogger = withRequestLogger(getOrCreateRequestId(requestHeaders));
   const session = await auth();
 
   if (!session?.userId) {
@@ -74,6 +104,8 @@ export async function presignUpload(input: unknown) {
 
   const objectKey = createObjectKey(session.userId, parsed.kind, parsed.filename, parsed.contentType);
 
+  requestLogger.info({ contentType: parsed.contentType, filename: parsed.filename, kind: parsed.kind, objectKey, size: parsed.size, userId: session.userId }, "presignUpload prepared upload target");
+
   return {
     objectKey,
     uploadUrl: await presignPut(objectKey, parsed.contentType),
@@ -81,6 +113,8 @@ export async function presignUpload(input: unknown) {
 }
 
 export async function commitUpload(input: unknown) {
+  const requestHeaders = await headers();
+  const requestLogger = withRequestLogger(getOrCreateRequestId(requestHeaders));
   const session = await auth();
 
   if (!session?.userId) {
@@ -90,30 +124,64 @@ export async function commitUpload(input: unknown) {
   const parsed = commitSchema.parse(input);
   assertUploadableKind(parsed.kind);
 
+  requestLogger.info({ expectedMime: parsed.expectedMime, expectedSize: parsed.expectedSize, kind: parsed.kind, objectKey: parsed.objectKey, userId: session.userId }, "commitUpload started");
+
   if (!parsed.objectKey.startsWith(`users/${session.userId}/`)) {
+    requestLogger.warn({ objectKey: parsed.objectKey, userId: session.userId }, "commitUpload rejected objectKey ownership mismatch");
     throw new Error("Upload object does not belong to the current user.");
   }
 
-  const head = await headObject(parsed.objectKey);
+  let head;
+  try {
+    requestLogger.info({ objectKey: parsed.objectKey }, "commitUpload heading object from storage");
+    head = await headObject(parsed.objectKey);
+  } catch (error) {
+    requestLogger.error({ error: serializeStorageError(error), objectKey: parsed.objectKey }, "commitUpload headObject failed");
+    throw error;
+  }
+
   const actualSize = Number(head.ContentLength ?? 0);
   const actualMime = head.ContentType ?? "";
+  requestLogger.info({ actualMime, actualSize, objectKey: parsed.objectKey }, "commitUpload received headObject metadata");
 
   if (actualSize !== parsed.expectedSize) {
+    requestLogger.error({ actualSize, expectedSize: parsed.expectedSize, objectKey: parsed.objectKey }, "commitUpload size mismatch");
     throw new Error("Uploaded file size does not match the expected size.");
   }
 
   if (actualMime !== parsed.expectedMime) {
+    requestLogger.error({ actualMime, expectedMime: parsed.expectedMime, objectKey: parsed.objectKey }, "commitUpload mime mismatch");
     throw new Error("Uploaded file type does not match the expected mime type.");
   }
 
-  const bytes = await readObjectBytes(parsed.objectKey);
-  const metadata = await sharp(bytes).metadata();
+  let bytes;
+  try {
+    requestLogger.info({ objectKey: parsed.objectKey }, "commitUpload reading object bytes from storage");
+    bytes = await readObjectBytes(parsed.objectKey);
+  } catch (error) {
+    requestLogger.error({ error: serializeStorageError(error), objectKey: parsed.objectKey }, "commitUpload readObjectBytes failed");
+    throw error;
+  }
+
+  requestLogger.info({ byteLength: bytes.byteLength, objectKey: parsed.objectKey }, "commitUpload read object bytes");
+
+  let metadata;
+  try {
+    metadata = await sharp(bytes).metadata();
+  } catch (error) {
+    requestLogger.error({ error: serializeStorageError(error), objectKey: parsed.objectKey }, "commitUpload sharp metadata failed");
+    throw error;
+  }
+
+  requestLogger.info({ height: metadata.height, objectKey: parsed.objectKey, width: metadata.width }, "commitUpload extracted image metadata");
 
   if (!metadata.width || !metadata.height) {
+    requestLogger.error({ metadata, objectKey: parsed.objectKey }, "commitUpload missing image dimensions");
     throw new Error("Unable to read image dimensions.");
   }
 
   const contentHash = createHash("sha256").update(bytes).digest("hex");
+  requestLogger.info({ contentHash, objectKey: parsed.objectKey }, "commitUpload computed content hash");
 
   const media = await db.mediaObject.upsert({
     where: {
@@ -142,7 +210,9 @@ export async function commitUpload(input: unknown) {
     },
   });
 
-  await getQueue(queueNames.deriveThumbnails).add(
+  requestLogger.info({ mediaObjectId: media.id, objectKey: media.objectKey }, "commitUpload persisted media row");
+
+  const deriveJob = await getQueue(queueNames.deriveThumbnails).add(
     queueNames.deriveThumbnails,
     { mediaObjectId: media.id },
     {
@@ -153,6 +223,8 @@ export async function commitUpload(input: unknown) {
       },
     },
   );
+
+  requestLogger.info({ deriveJobId: deriveJob.id, mediaObjectId: media.id, queueName: queueNames.deriveThumbnails }, "commitUpload enqueued derive-thumbnails job");
 
   return media;
 }
