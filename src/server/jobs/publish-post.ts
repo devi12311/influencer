@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { db } from "@/server/db";
 import { resolvePostingProvider } from "@/server/providers/registry";
 import { getQueue, queueNames } from "@/server/queue/queues";
-import {buildPublicUrl, presignGet, readObjectBytes, uploadObject} from "@/server/storage/minio";
+import { presignGet, readObjectBytes, uploadObject } from "@/server/storage/minio";
 
 const TIKTOK_STATUS_POLL_DELAY_MS = 15_000;
 const TIKTOK_STATUS_POLL_LIMIT = 20;
@@ -61,7 +61,9 @@ async function resolveImageUrlsForPlatform(
     return createTikTokPublishableImageUrls(postMedia);
   }
 
-  return postMedia.map(({ mediaObject }) => ensureHttpsUrl(buildPublicUrl(mediaObject.objectKey)));
+  return Promise.all(
+    postMedia.map(async ({ mediaObject }) => ensureHttpsUrl(await presignGet(mediaObject.objectKey))),
+  );
 }
 
 async function scheduleTikTokStatusPoll(publicationId: string, pollAttempt: number) {
